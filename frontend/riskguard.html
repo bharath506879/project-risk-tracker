@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Risk Tracker – Smart Project Monitor</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* Modern Glassmorphism & Animations */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+            color: #334155;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        }
+
+        /* Smooth View Transitions */
+        .view-section {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+
+        .view-section.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Hover Lifts */
+        .hover-lift {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Loaders */
+        .loader {
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 99px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Console Typewriter Blink */
+        .cursor-blink {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background-color: #10b981;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            background-image: linear-gradient(#3b82f6, #3b82f6);
+            background-repeat: no-repeat;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background .3s ease-in-out;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            background: #3b82f6;
+        }
+        
+        /* Advanced Mode Toggle Transition */
+        #advancedFields {
+            transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Sticky Glass Header -->
+    <header id="mainHeader" class="glass-nav sticky top-0 z-50 transition-all duration-300 hidden">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer group" onclick="navigateTo('dashboard')">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-layer-group text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-tight text-slate-800 group-hover:text-blue-600 transition-colors">Project Risk <span class="font-light text-slate-400">Tracker</span></h1>
+                    <p class="text-[10px] uppercase tracking-widest font-semibold text-blue-500">Smart Project Monitor</p>
+                </div>
+            </div>
+
+            <!-- Desktop Nav -->
+            <div class="hidden md:flex items-center space-x-1 bg-slate-100/50 p-1 rounded-full border border-slate-200/60 backdrop-blur-sm">
+                <button onclick="navigateTo('dashboard')" class="nav-link px-5 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-white transition-all flex items-center gap-2" data-target="dashboard">
+                    <i class="fa-solid fa-sliders"></i> Add Project Manually
+                </button>
+                <button onclick="navigateTo('url-analysis')" class="nav-link px-5 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-white transition-all flex items-center gap-2" data-target="url-analysis">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Scan Link (AI)
+                </button>
+                <button onclick="navigateTo('analytics')" class="nav-link px-5 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-white transition-all flex items-center gap-2" data-target="analytics">
+                    <i class="fa-solid fa-chart-pie"></i> Charts & Trends
+                </button>
+                <button onclick="navigateTo('about')" class="nav-link px-5 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-white transition-all flex items-center gap-2" data-target="about">
+                    <i class="fa-regular fa-circle-question"></i> How it Works
+                </button>
+                <div class="h-6 w-px bg-slate-300 mx-1"></div>
+                <button onclick="logout()" class="px-4 py-2 rounded-full text-sm font-medium text-red-500 hover:bg-red-50 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                </button>
+            </div>
+
+            <!-- Mobile Toggle -->
+            <button class="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                <i class="fa-solid fa-bars-staggered text-xl"></i>
+            </button>
+        </nav>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden glass-panel border-t border-slate-200 p-4 space-y-2 shadow-xl absolute w-full z-40">
+            <button onclick="navigateTo('dashboard')" class="block w-full text-left px-4 py-3 text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors font-medium"><i class="fa-solid fa-sliders w-6"></i> Add Project Manually</button>
+            <button onclick="navigateTo('url-analysis')" class="block w-full text-left px-4 py-3 text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors font-medium"><i class="fa-solid fa-wand-magic-sparkles w-6"></i> Scan Link (AI)</button>
+            <button onclick="navigateTo('analytics')" class="block w-full text-left px-4 py-3 text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors font-medium"><i class="fa-solid fa-chart-pie w-6"></i> Charts & Trends</button>
+            <button onclick="navigateTo('about')" class="block w-full text-left px-4 py-3 text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors font-medium"><i class="fa-regular fa-circle-question w-6"></i> How it Works</button>
+            <div class="h-px w-full bg-slate-200 my-2"></div>
+            <button onclick="logout()" class="block w-full text-left px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors font-medium"><i class="fa-solid fa-arrow-right-from-bracket w-6"></i> Sign Out</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-0">
+
+        <!-- 0. AUTHENTICATION VIEW -->
+        <section id="auth" class="view-section active">
+            <div class="min-h-[70vh] flex flex-col justify-center items-center py-12">
+                <!-- App Logo Large -->
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 mb-4">
+                        <i class="fa-solid fa-layer-group text-3xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Project Risk <span class="font-light text-slate-500">Tracker</span></h1>
+                </div>
+
+                <!-- Auth Card -->
+                <div class="glass-panel p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/60 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                    
+                    <div class="text-center mb-8">
+                        <h2 id="authTitle" class="text-2xl font-bold text-slate-900">Welcome Back</h2>
+                        <p id="authSubtitle" class="text-sm text-slate-500 mt-2">Sign in to your project workspace.</p>
+                    </div>
+
+                    <form id="authForm" class="space-y-5">
+                        <div id="nameField" class="hidden transition-all">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Full Name</label>
+                            <div class="relative">
+                                <i class="fa-regular fa-user absolute left-4 top-3.5 text-slate-400"></i>
+                                <input type="text" id="authName" placeholder="John Doe" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-slate-700">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Email Address</label>
+                            <div class="relative">
+                                <i class="fa-regular fa-envelope absolute left-4 top-3.5 text-slate-400"></i>
+                                <input type="email" id="authEmail" required placeholder="name@company.com" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-slate-700">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Password</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-lock absolute left-4 top-3.5 text-slate-400"></i>
+                                <input type="password" id="authPassword" required placeholder="••••••••" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-slate-700">
+                            </div>
+                        </div>
+
+                        <button type="submit" id="authBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-2 mt-2">
+                            Sign In <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+
+                    <div class="mt-8 pt-6 border-t border-slate-100 text-center">
+                        <p class="text-sm text-slate-500">
+                            <span id="authToggleText">Don't have an account?</span> 
+                            <button onclick="toggleAuthMode()" id="authToggleBtn" class="font-bold text-blue-600 hover:text-indigo-600 transition-colors ml-1 focus:outline-none">Sign Up</button>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Quick Demo Bypass -->
+                <button onclick="demoLogin()" class="mt-8 text-[10px] font-mono text-slate-400 hover:text-slate-600 transition-colors">
+                    [ Click here to bypass login for demo purposes ]
+                </button>
+            </div>
+        </section>
+
+        <!-- 1. DASHBOARD / MANUAL INPUT VIEW -->
+        <section id="dashboard" class="view-section">
+            <div class="max-w-6xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900">Enter Project Details</h2>
+                        <p class="text-slate-500">Provide the core metrics of your project to calculate its risk of failure.</p>
+                    </div>
+                    <button onclick="seedData()" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors uppercase tracking-wide">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> Reset Demo Data
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Form -->
+                    <div class="lg:col-span-2">
+                        <div class="glass-panel p-8 rounded-2xl shadow-sm border border-white/60 relative">
+                            <!-- Loading Overlay -->
+                            <div id="formOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 hidden rounded-2xl flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="loader mx-auto mb-3"></div>
+                                    <p class="text-slate-600 font-medium animate-pulse">Calculating Risk Score...</p>
+                                </div>
+                            </div>
+
+                            <form id="riskForm" class="space-y-8">
+                                <div class="space-y-4">
+                                    <h3 class="text-sm font-bold text-blue-600 uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-slate-100">
+                                        <i class="fa-regular fa-folder"></i> Basic Information
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Project Name <span class="text-red-400">*</span></label>
+                                            <input type="text" id="pName" required placeholder="e.g. Website Redesign" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Industry / Type</label>
+                                            <select id="pType" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                                <option value="Software">Software & IT</option>
+                                                <option value="Construction">Construction</option>
+                                                <option value="R&D">Research & Dev</option>
+                                                <option value="Marketing">Marketing</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Expected Duration (Days) <span class="text-red-400">*</span></label>
+                                            <input type="number" id="pDuration" required min="1" placeholder="365" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <label class="block text-xs font-bold text-slate-400 uppercase">Completion %</label>
+                                                <span class="text-xs font-bold text-blue-600" id="completionVal">0%</span>
+                                            </div>
+                                            <input type="range" id="pCompletionSlider" min="0" max="100" value="0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mb-2 accent-blue-600">
+                                            <input type="number" id="pCompletion" required min="0" max="100" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-sm hidden">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Schedule Delay (Days)</label>
+                                            <input type="number" id="pDelay" required min="0" placeholder="0" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <label class="block text-xs font-bold text-slate-400 uppercase">Budget Spent %</label>
+                                                <span class="text-xs font-bold text-blue-600" id="budgetVal">0%</span>
+                                            </div>
+                                            <input type="range" id="pBudgetSlider" min="0" max="100" value="0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mb-2 accent-blue-600">
+                                            <input type="number" id="pBudgetUsed" required min="0" max="100" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-sm hidden">
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Resource Availability</label>
+                                            <select id="pResource" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                                <option value="full">Resources are Fully Available</option>
+                                                <option value="partial">Resources are Partially Busy</option>
+                                                <option value="shortage">Severe Resource Shortage</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Task Complexity</label>
+                                            <select id="pDependency" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                                <option value="low">Simple & Straightforward</option>
+                                                <option value="medium">Average Complexity</option>
+                                                <option value="high">Highly Complex / Many Dependencies</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-slate-200 pt-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                                <i class="fa-solid fa-microchip text-indigo-500"></i> Extra Risk Factors (Optional)
+                                            </h3>
+                                            <p class="text-[10px] text-slate-500 font-medium tracking-wide uppercase mt-1">Provide more details for a highly accurate score</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="advancedToggle" class="sr-only peer" onchange="toggleAdvancedSection()">
+                                            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div id="advancedFields" class="max-h-0 opacity-0 overflow-hidden transition-all duration-500">
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 pb-4">
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Scope Changes / Mo</label>
+                                                <input type="number" id="pScopeChange" min="0" value="0" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-lg text-sm outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Avg Team Exp (Yrs)</label>
+                                                <input type="number" id="pTeamExp" min="0" value="3" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-lg text-sm outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Outside Dependencies</label>
+                                                <input type="number" id="pDependencies" min="0" value="0" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-lg text-sm outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Defect / Bug Rate (%)</label>
+                                                <input type="number" id="pDefectRate" min="0" max="100" value="0" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-lg text-sm outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Rework Effort (%)</label>
+                                                <input type="number" id="pRework" min="0" max="100" value="0" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-lg text-sm outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Client/Stakeholders</label>
+                                                <select id="pStakeholder" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-lg text-sm outline-none">
+                                                    <option value="stable">Supportive & Stable</option>
+                                                    <option value="mixed">Mixed Opinions</option>
+                                                    <option value="volatile">Difficult / Changing Minds</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="pt-4 flex justify-end border-t border-slate-200">
+                                    <button type="submit" id="submitBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                                        <span>Calculate Risk Score</span> <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Right: Sticky Result & Transparency Panel -->
+                    <div class="lg:col-span-1">
+                        <div class="sticky top-28">
+                            <!-- Placeholder -->
+                            <div id="resultPlaceholder" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center flex flex-col justify-center items-center h-64 text-slate-400">
+                                <div class="bg-white p-4 rounded-full shadow-sm mb-4">
+                                    <i class="fa-solid fa-clipboard-list text-3xl text-slate-300"></i>
+                                </div>
+                                <p class="font-medium text-sm">Waiting for project data...</p>
+                            </div>
+
+                            <!-- Result Card -->
+                            <div id="resultCard" class="hidden glass-panel rounded-2xl shadow-xl overflow-hidden result-animate ring-1 ring-black/5 flex flex-col">
+                                <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-white border-b border-white/10">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Chance of Project Failure <i class="fa-regular fa-circle-question text-slate-300 ml-1 cursor-help" title="Higher percentage means higher chance of project failure"></i></p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <span class="text-4xl font-bold tracking-tight" id="riskProb">0%</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div id="riskBadge" class="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold border border-white/10 uppercase tracking-wider mb-1 inline-block">--</div>
+                                            <p class="text-[9px] text-slate-400">Low = Safe | Med = Needs Attention | High = Urgent</p>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-slate-700/50 rounded-full h-1.5 mb-1">
+                                        <div id="riskMeterBar" class="bg-gradient-to-r from-green-400 to-emerald-500 h-1.5 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-5 bg-white border-b border-slate-100">
+                                    <h6 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between">
+                                        Risk Breakdown (Impact Vectors)
+                                        <i class="fa-solid fa-layer-group text-slate-300"></i>
+                                    </h6>
+                                    <div class="space-y-3">
+                                        <!-- Breakdown Bars -->
+                                        <div>
+                                            <div class="flex justify-between text-[10px] font-bold text-slate-600 mb-1"><span>Schedule</span><span id="impactScheduleVal">0%</span></div>
+                                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div id="impactScheduleBar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-1000"></div></div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between text-[10px] font-bold text-slate-600 mb-1"><span>Cost</span><span id="impactCostVal">0%</span></div>
+                                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div id="impactCostBar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-1000"></div></div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between text-[10px] font-bold text-slate-600 mb-1"><span>Resource Constraint</span><span id="impactResVal">0%</span></div>
+                                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div id="impactResBar" class="bg-purple-500 h-1.5 rounded-full transition-all duration-1000"></div></div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between text-[10px] font-bold text-slate-600 mb-1"><span>Complexity</span><span id="impactCompVal">0%</span></div>
+                                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div id="impactCompBar" class="bg-indigo-500 h-1.5 rounded-full transition-all duration-1000"></div></div>
+                                        </div>
+                                        <div id="advancedImpactContainer" class="hidden">
+                                            <div class="flex justify-between text-[10px] font-bold text-slate-600 mb-1"><span>Extra Risk Factors</span><span id="impactAdvVal">0%</span></div>
+                                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div id="impactAdvBar" class="bg-pink-500 h-1.5 rounded-full transition-all duration-1000"></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-5 bg-slate-50/50 flex-grow">
+                                    <h5 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-xs uppercase tracking-wide">
+                                        <i class="fa-solid fa-shield-halved text-emerald-500"></i> What you should do
+                                    </h5>
+                                    <ul id="mitigationList" class="space-y-2 text-xs text-slate-600">
+                                        <!-- JS -->
+                                    </ul>
+                                </div>
+                                <div class="p-4 bg-white border-t border-slate-100 text-center">
+                                    <button onclick="resetForm()" class="text-blue-600 text-xs font-bold hover:text-blue-800 transition-colors uppercase tracking-wide">
+                                        Clear & Start Over
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Table -->
+            <div class="max-w-6xl mx-auto mt-10">
+                <div class="glass-panel rounded-2xl overflow-hidden shadow-sm">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-white/50">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-blue-500"></i> Saved Project Assessments
+                        </h3>
+                    </div>
+                    
+                    <div id="emptyState" class="hidden py-16 text-center bg-white/40">
+                        <div class="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100">
+                            <i class="fa-solid fa-rocket text-4xl text-blue-500"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-800 mb-2">Your Dashboard is Empty</h4>
+                        <p class="text-slate-500 text-sm max-w-md mx-auto mb-8">You haven't added any projects yet. Calculate a risk score above or scan a link to get started.</p>
+                    </div>
+
+                    <div class="overflow-x-auto custom-scroll" id="projectsTableContainer">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                                    <th class="px-6 py-4">Project Name</th>
+                                    <th class="px-6 py-4">Assessment Method</th>
+                                    <th class="px-6 py-4">Calculated Risk</th>
+                                    <th class="px-6 py-4">Date Evaluated</th>
+                                    <th class="px-6 py-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTableBody" class="divide-y divide-slate-100 text-sm font-medium text-slate-600">
+                                <!-- Rows populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. URL ANALYSIS VIEW -->
+        <section id="url-analysis" class="view-section">
+            <div class="max-w-5xl mx-auto">
+                <div class="mb-8 text-center">
+                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">AI-Powered</span>
+                    <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Scan a Project Link</h2>
+                    <p class="text-slate-500 max-w-2xl mx-auto">Paste a public repository link (like GitHub). Our scanner will pull live code metrics to instantly estimate the chance of project failure.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                    
+                    <!-- Input Card -->
+                    <div class="glass-panel p-8 rounded-2xl shadow-lg border-t-4 border-blue-500 h-full flex flex-col justify-center">
+                        <form id="urlForm" class="space-y-6">
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Target Link / Repo</label>
+                                    <button type="button" onclick="fillDemoUrl()" class="text-xs text-blue-600 hover:underline cursor-pointer font-medium">Try Example Link</button>
+                                </div>
+                                <div class="relative group">
+                                    <i class="fa-brands fa-github absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                    <input type="url" id="urlInput" required placeholder="https://github.com/username/project" 
+                                        class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-slate-700 placeholder-slate-400 hover:bg-white">
+                                </div>
+                                <p class="text-xs text-slate-400 mt-2 ml-1">Currently supports public GitHub links.</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Industry Category</label>
+                                <div class="relative">
+                                    <select id="urlProjectType" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-slate-700 appearance-none hover:bg-white cursor-pointer">
+                                        <option value="Software">Software & Tech</option>
+                                        <option value="Research">Academic Research</option>
+                                        <option value="Construction">Construction</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="urlSubmitBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 px-4 rounded-xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3 mt-4 group">
+                                <span class="group-hover:scale-105 transition-transform flex items-center gap-2">
+                                    <i class="fa-solid fa-bolt text-yellow-400"></i> Scan Project Link
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Futuristic Console -->
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl p-1 border border-slate-700 relative overflow-hidden flex flex-col h-[380px]">
+                        <!-- Console Header -->
+                        <div class="bg-slate-800 px-4 py-2 flex items-center justify-between rounded-t-xl border-b border-slate-700">
+                            <div class="flex gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <div class="text-[10px] font-mono text-slate-400 flex items-center gap-2">
+                                <i class="fa-solid fa-terminal"></i> SCAN_LOG.TXT
+                            </div>
+                        </div>
+                        <!-- Console Body -->
+                        <div id="consoleContainer" class="p-6 font-mono text-sm overflow-y-auto custom-scroll flex-grow relative">
+                            <div class="absolute inset-0 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                            <div id="consoleOutput" class="space-y-2 relative z-10">
+                                <div class="text-slate-500 flex items-center">
+                                    <span class="text-blue-500 mr-2">➜</span> System ready... <span class="cursor-blink"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Card (Hidden) -->
+                <div id="urlResultCard" class="hidden mt-10 glass-panel rounded-2xl shadow-2xl border-0 overflow-hidden result-animate ring-1 ring-black/5">
+                    <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 flex justify-between items-center text-white">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                                <i class="fa-solid fa-microchip text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg">Scan Finished</h4>
+                                <p class="text-xs text-slate-400">Live data successfully extracted.</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono bg-blue-500/20 text-blue-300 px-3 py-1 rounded border border-blue-500/30">SOURCE: GITHUB</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                        <!-- Score -->
+                        <div class="p-8 text-center flex flex-col justify-center items-center bg-white/50">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Chance of Project Failure <i class="fa-regular fa-circle-question cursor-help text-slate-400 ml-1" title="Higher percentage means higher chance of project failure"></i></p>
+                            <div id="urlRiskBadge" class="mb-2">CALCULATING</div>
+                            <p class="text-[10px] text-slate-400 mb-2">Low = Safe | Med = Needs Attention | High = Urgent</p>
+                            <div class="text-6xl font-black text-slate-800 tracking-tight" id="urlProb">0%</div>
+                        </div>
+
+                        <!-- Metrics -->
+                        <div class="p-8 bg-white/30">
+                            <h5 class="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                <i class="fa-solid fa-chart-bar text-blue-500"></i> What we found
+                            </h5>
+                            <div class="space-y-4 text-sm">
+                                <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                                    <span class="text-slate-500">Popularity / Trust</span>
+                                    <span class="font-bold text-slate-700 bg-white px-2 py-0.5 rounded shadow-sm" id="metricDoc">--</span>
+                                </div>
+                                <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                                    <span class="text-slate-500">Last Code Update</span>
+                                    <span class="font-bold text-slate-700 bg-white px-2 py-0.5 rounded shadow-sm" id="metricUpdate">--</span>
+                                </div>
+                                <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                                    <span class="text-slate-500">Project Age</span>
+                                    <span class="font-bold text-slate-700 bg-white px-2 py-0.5 rounded shadow-sm" id="metricMaturity">--</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Active Contributors</span>
+                                    <span class="font-bold text-slate-700 bg-white px-2 py-0.5 rounded shadow-sm" id="metricComplex">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recommendations -->
+                        <div class="p-8 bg-blue-50/30">
+                            <h5 class="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                <i class="fa-solid fa-lightbulb text-amber-500"></i> Advice for this Project
+                            </h5>
+                            <ul id="urlMitigations" class="space-y-3 text-sm text-slate-600">
+                                <!-- JS -->
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 p-4 text-center border-t border-slate-100">
+                        <button onclick="navigateTo('dashboard')" class="text-blue-600 text-sm font-bold hover:text-blue-800 hover:underline">
+                            Go to Dashboard &rarr;
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. ANALYTICS VIEW -->
+        <section id="analytics" class="view-section">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-6">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Project Analytics</h2>
+                    <p class="text-slate-500 mt-1">Clear insights to help you make quick, data-driven decisions.</p>
+                </div>
+            </div>
+
+            <!-- NEW: AI Risk Summary -->
+            <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-indigo-500 mb-8 bg-indigo-50/30">
+                <h3 class="font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-robot text-indigo-600"></i> AI Risk Summary
+                </h3>
+                <ul class="space-y-3 text-sm text-slate-700" id="aiRiskSummaryList">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+
+            <!-- Charts Layout: Only 2 Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- Doughnut Chart (1 Col) -->
+                <div class="glass-panel p-6 rounded-2xl shadow-sm lg:col-span-1 flex flex-col h-full">
+                    <h3 class="font-bold text-slate-800 text-lg mb-1">Current Risk Levels</h3>
+                    <p class="text-xs text-slate-500 mb-6">How many projects are currently in danger?</p>
+                    <div class="relative flex-grow flex items-center justify-center min-h-[220px]">
+                        <canvas id="riskDistChart"></canvas>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-12">
+                            <span class="text-4xl font-black text-slate-800 tracking-tight" id="chartTotalProjects">0</span>
+                            <span class="text-[10px] uppercase text-slate-400 font-bold tracking-widest">Total</span>
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                        <p class="text-sm font-medium text-slate-700" id="doughnutInsight">--</p>
+                    </div>
+                </div>
+
+                <!-- Line Chart (2 Cols) -->
+                <div class="glass-panel p-6 rounded-2xl shadow-sm lg:col-span-2 flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-bold text-slate-800 text-lg">Risk Trend Over Time</h3>
+                        <span class="text-[10px] font-bold bg-purple-50 text-purple-600 px-2 py-1 rounded border border-purple-100 shadow-sm flex items-center gap-1">
+                            <i class="fa-solid fa-eye"></i> AI PREDICTION
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-6">Are things getting better or worse?</p>
+                    <div class="relative flex-grow min-h-[220px] w-full">
+                        <canvas id="riskTrendChart"></canvas>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                        <p class="text-sm font-medium text-slate-700" id="trendInsight">--</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. ABOUT VIEW -->
+        <section id="about" class="view-section">
+            <div class="glass-panel rounded-3xl shadow-xl p-10 max-w-4xl mx-auto border border-white/60">
+                <div class="text-center mb-10">
+                    <div class="inline-block bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-4 rounded-2xl shadow-lg mb-4">
+                        <i class="fa-solid fa-sitemap text-4xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-900">How This Tool Works</h2>
+                    <p class="text-slate-500 mt-2 text-lg">Understand if your project is at risk of failure before it's too late.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                    <div class="bg-white/50 p-6 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-question-circle text-blue-500"></i> What does this do?
+                        </h4>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            This website acts as an early warning system. By looking at how your project is running (like how much time or money is left), it calculates a simple percentage telling you how likely the project is to fail. 
+                        </p>
+                    </div>
+                    <div class="bg-white/50 p-6 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-heart-circle-check text-indigo-500"></i> Why is it useful?
+                        </h4>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            It helps managers take early action. Instead of being surprised by a failed deadline or a blown budget, you get immediate suggestions on how to save time, reduce costs, and avoid project failure.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mb-10">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 px-2">How it works (Step-by-Step):</h3>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-100 text-blue-600 font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0">1</div>
+                            <p class="text-sm text-slate-600 mt-1"><strong>Enter Data:</strong> You manually type in your project details, OR you paste a GitHub link.</p>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-100 text-blue-600 font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0">2</div>
+                            <p class="text-sm text-slate-600 mt-1"><strong>System Analyzes:</strong> The engine automatically looks at activity, progress, budgets, and open issues.</p>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-100 text-blue-600 font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0">3</div>
+                            <p class="text-sm text-slate-600 mt-1"><strong>Get Your Score:</strong> It calculates a Risk Score (0-100%) and tells you exactly what is causing the risk.</p>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-100 text-blue-600 font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0">4</div>
+                            <p class="text-sm text-slate-600 mt-1"><strong>Fix the Problem:</strong> It gives you clear, actionable suggestions to get your project back on track.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Extensibility Statement (Personalized) -->
+                <div class="bg-indigo-50/50 border border-indigo-100 p-6 rounded-2xl text-center mt-8">
+                    <h4 class="font-bold text-indigo-800 mb-2 text-sm uppercase tracking-wide">For Developers & Researchers</h4>
+                    <p class="text-sm text-indigo-700/80 max-w-xl mx-auto">
+                        This interface uses a highly extensible mathematical scoring engine. In future iterations, this deterministic layer can easily be replaced by real machine learning models (like <strong>Federated Learning</strong> nodes) to analyze historical datasets directly while preserving local data privacy.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer id="mainFooter" class="glass-nav mt-auto border-t border-slate-200/60 relative z-10 hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 opacity-30"></div>
+        <div class="container mx-auto px-6 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-center md:text-left">
+                    <p class="text-sm font-semibold text-slate-600">Project Risk Tracker</p>
+                    <p class="text-xs text-slate-400 mt-1">Smart Analytics Dashboard &copy; 2026</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // ==========================================
+        // MODULE: CONFIG & UTILS
+        // ==========================================
+        const RISK_THRESHOLDS = {
+            LOW: 35,
+            HIGH: 65,
+            MAX: 99,
+            MIN: 1
+        };
+
+        const DB_KEY = 'riskGuard_projects_v3';
+        
+        const seedProjects = [
+            { id: 171542123, name: "Project Alpha", type: "IT", method: "Manual", progress: 85, status: "Low", probability: 15, date: "2024-03-10" },
+            { id: 171542124, name: "Skyline Tower", type: "Construction", method: "Manual", progress: 42, status: "Medium", probability: 55, date: "2024-03-12" },
+        ];
+
+        let projects = [];
+
+        function sanitizeInput(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function safeDivide(a, b) {
+            if (b === 0) return 0;
+            return a / b;
+        }
+
+        // --- Helper function for URL extraction ---
+        function extractNameFromUrl(url) {
+            try {
+                const cleanUrl = url.replace(/\/$/, ""); 
+                const parts = cleanUrl.split('/');
+                return parts[parts.length - 1] || "Analyzed Project";
+            } catch(e) { return "Analyzed Project"; }
+        }
+
+        // ==========================================
+        // MODULE: AUTHENTICATION (Real API)
+        // ==========================================
+        
+        // IMPORTANT: Change this to your deployed backend URL
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let isSignUpMode = false;
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            const nameField = document.getElementById('nameField');
+            const authTitle = document.getElementById('authTitle');
+            const authSubtitle = document.getElementById('authSubtitle');
+            const authBtn = document.getElementById('authBtn');
+            const authToggleText = document.getElementById('authToggleText');
+            const authToggleBtn = document.getElementById('authToggleBtn');
+
+            if (isSignUpMode) {
+                nameField.classList.remove('hidden');
+                document.getElementById('authName').required = true;
+                authTitle.innerText = "Create Account";
+                authSubtitle.innerText = "Sign up to start tracking project risks.";
+                authBtn.innerHTML = 'Create Account <i class="fa-solid fa-user-plus"></i>';
+                authToggleText.innerText = "Already have an account?";
+                authToggleBtn.innerText = "Sign In";
+            } else {
+                nameField.classList.add('hidden');
+                document.getElementById('authName').required = false;
+                authTitle.innerText = "Welcome Back";
+                authSubtitle.innerText = "Sign in to your project workspace.";
+                authBtn.innerHTML = 'Sign In <i class="fa-solid fa-arrow-right"></i>';
+                authToggleText.innerText = "Don't have an account?";
+                authToggleBtn.innerText = "Sign Up";
+            }
+        }
+
+        document.getElementById('authForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('authEmail').value.trim().toLowerCase();
+            const password = document.getElementById('authPassword').value.trim();
+            const name = document.getElementById('authName').value.trim();
+            const authBtn = document.getElementById('authBtn');
+
+            // Disable button while processing
+            authBtn.disabled = true;
+            authBtn.innerHTML = '<div class="loader mx-auto"></div>';
+
+            try {
+                let endpoint = isSignUpMode ? '/auth/signup' : '/auth/login';
+                let payload = isSignUpMode 
+                    ? { name, email, password }
+                    : { email, password };
+
+                const response = await fetch(API_BASE_URL + endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // Handle specific errors
+                    if (data.error.includes('already exists')) {
+                        alert('User already exists. Please sign in instead.');
+                    } else if (data.error.includes('Invalid credentials')) {
+                        alert('Invalid credentials. Please check your email and password.');
+                    } else {
+                        alert('Error: ' + (data.error || 'Server error'));
+                    }
+                    return;
+                }
+
+                // Store JWT token (NOT user credentials)
+                localStorage.setItem('rg_token', data.token);
+                if (isSignUpMode) {
+                    localStorage.setItem('rg_user_name', data.user.name);
+                }
+
+                // Clear form and load app
+                document.getElementById('authForm').reset();
+                loadApplicationData();
+
+            } catch (error) {
+                console.error('Auth error:', error);
+                alert('Connection error. Make sure the backend server is running at ' + API_BASE_URL);
+            } finally {
+                authBtn.disabled = false;
+                authBtn.innerHTML = isSignUpMode 
+                    ? 'Create Account <i class="fa-solid fa-user-plus"></i>'
+                    : 'Sign In <i class="fa-solid fa-arrow-right"></i>';
+            }
+        });
+
+        function demoLogin() {
+            // For demo, use a test account (make sure it exists on backend)
+            document.getElementById('authEmail').value = 'demo@example.com';
+            document.getElementById('authPassword').value = 'demo123456';
+            document.getElementById('authForm').dispatchEvent(new Event('submit'));
+        }
+
+        function logout() {
+            localStorage.removeItem('rg_token');
+            localStorage.removeItem('rg_user_name');
+            isSignUpMode = false;
+            toggleAuthMode(); // Reset back to Sign In view
+            document.getElementById('authForm').reset();
+            navigateTo('auth');
+        }
+
+        function getAuthToken() {
+            return localStorage.getItem('rg_token');
+        }
+
+        function isUserLoggedIn() {
+            return !!getAuthToken();
+        }
+
+        // ==========================================
+        // MODULE: DATA STORE & INIT
+        // ==========================================
+        function initApp() {
+            // Check if user has valid JWT token
+            if (!isUserLoggedIn()) {
+                navigateTo('auth');
+            } else {
+                loadApplicationData();
+            }
+        }
+
+        function loadApplicationData() {
+            try {
+                const stored = localStorage.getItem(DB_KEY);
+                if (stored) {
+                    projects = JSON.parse(stored);
+                } else {
+                    projects = JSON.parse(JSON.stringify(seedProjects));
+                    saveData();
+                }
+            } catch (error) {
+                console.error("State corruption detected, resetting DB", error);
+                localStorage.removeItem(DB_KEY);
+                projects = JSON.parse(JSON.stringify(seedProjects));
+                saveData();
+            }
+            
+            initSliders();
+            navigateTo('dashboard');
+        }
+        
+        function saveData() {
+            try {
+                localStorage.setItem(DB_KEY, JSON.stringify(projects));
+                updateDashboardUI();
+                if (typeof renderCharts === 'function' && document.getElementById('analytics').classList.contains('active')) {
+                    renderCharts();
+                }
+            } catch (e) {
+                console.error("Data save failed:", e);
+                alert("Storage limit reached or access denied.");
+            }
+        }
+
+        function seedData() {
+            if(confirm("Reset to default demo data? This clears your custom entries.")) {
+                projects = JSON.parse(JSON.stringify(seedProjects));
+                localStorage.setItem(DB_KEY, JSON.stringify(projects));
+                location.reload();
+            }
+        }
+
+        function deleteProject(id) {
+            if (id === undefined || id === null) return;
+            if(confirm("Delete this project?")) {
+                const initialCount = projects.length;
+                projects = projects.filter(p => String(p.id) !== String(id));
+                if (projects.length !== initialCount) saveData();
+            }
+        }
+
+        // ==========================================
+        // MODULE: UI CONTROLLER
+        // ==========================================
+        function initSliders() {
+            const compSlider = document.getElementById('pCompletionSlider');
+            const compInput = document.getElementById('pCompletion');
+            const compVal = document.getElementById('completionVal');
+            
+            if(compSlider && compInput) {
+                compSlider.addEventListener('input', (e) => {
+                    compInput.value = e.target.value;
+                    compVal.innerText = e.target.value + '%';
+                });
+            }
+            
+            const budgetSlider = document.getElementById('pBudgetSlider');
+            const budgetInput = document.getElementById('pBudgetUsed');
+            const budgetVal = document.getElementById('budgetVal');
+            
+            if(budgetSlider && budgetInput) {
+                budgetSlider.addEventListener('input', (e) => {
+                    budgetInput.value = e.target.value;
+                    budgetVal.innerText = e.target.value + '%';
+                });
+            }
+        }
+        
+        function fillDemoUrl() {
+            document.getElementById('urlInput').value = 'https://github.com/torvalds/linux';
+        }
+
+        function toggleAdvancedSection() {
+            const toggle = document.getElementById('advancedToggle');
+            const fields = document.getElementById('advancedFields');
+            const advContainer = document.getElementById('advancedImpactContainer');
+            
+            if (toggle.checked) {
+                fields.classList.remove('max-h-0', 'opacity-0');
+                fields.classList.add('max-h-96', 'opacity-100');
+                if(advContainer) advContainer.classList.remove('hidden');
+            } else {
+                fields.classList.remove('max-h-96', 'opacity-100');
+                fields.classList.add('max-h-0', 'opacity-0');
+                if(advContainer) advContainer.classList.add('hidden');
+            }
+        }
+
+        function navigateTo(sectionId) {
+            // Manage Views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            // Manage Header/Footer Visibility based on Auth state
+            const header = document.getElementById('mainHeader');
+            const footer = document.getElementById('mainFooter');
+            
+            if (sectionId === 'auth') {
+                header.classList.add('hidden');
+                footer.classList.add('hidden');
+            } else {
+                header.classList.remove('hidden');
+                footer.classList.remove('hidden');
+            }
+
+            // Manage Nav Link Styles (only if not on auth page)
+            if (sectionId !== 'auth') {
+                document.querySelectorAll('.nav-link').forEach(btn => {
+                    if(btn.dataset.target === sectionId) {
+                        btn.classList.add('text-blue-600', 'bg-white', 'shadow-sm');
+                        btn.classList.remove('text-slate-600');
+                    } else {
+                        btn.classList.remove('text-blue-600', 'bg-white', 'shadow-sm');
+                        btn.classList.add('text-slate-600');
+                    }
+                });
+            }
+
+            document.getElementById('mobile-menu').classList.add('hidden');
+            window.scrollTo(0, 0);
+
+            if(sectionId === 'analytics') renderCharts();
+            if(sectionId === 'dashboard') updateDashboardUI();
+        }
+
+        function updateDashboardUI() {
+            const tbody = document.getElementById('dashboardTableBody');
+            const empty = document.getElementById('emptyState');
+            const tableContainer = document.getElementById('projectsTableContainer');
+            
+            if (tbody && empty && tableContainer) {
+                tbody.innerHTML = '';
+                if (!projects || projects.length === 0) {
+                    empty.classList.remove('hidden');
+                    tableContainer.classList.add('hidden');
+                } else {
+                    empty.classList.add('hidden');
+                    tableContainer.classList.remove('hidden');
+                    
+                    projects.forEach(p => {
+                        let badgeClass = p.status === 'High' ? 'bg-red-50 text-red-600 border border-red-100' : (p.status === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100');
+                        const row = `
+                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                                <td class="px-6 py-4 font-bold text-slate-800">${sanitizeInput(p.name)}</td>
+                                <td class="px-6 py-4 text-xs">
+                                    <span class="border px-2 py-1 rounded-md bg-white text-slate-500 font-mono ${p.method === 'Scan Link (AI)' || p.method === 'Predictive Risk Scan' ? 'border-blue-200 text-blue-600 bg-blue-50/50' : 'border-slate-200'}">
+                                        ${p.method === 'Scan Link (AI)' || p.method === 'Predictive Risk Scan' ? '<i class="fa-solid fa-bolt mr-1"></i> Scan' : '<i class="fa-solid fa-user mr-1"></i> Manual'}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4"><span class="${badgeClass} px-3 py-1 rounded-full text-xs font-bold shadow-sm">${p.status}</span></td>
+                                <td class="px-6 py-4 text-slate-400 text-xs font-mono">${p.date}</td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="deleteProject(${p.id})" class="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full" title="Delete Project"><i class="fa-regular fa-trash-can"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                }
+            }
+
+            const total = projects.length;
+            const chartTotalEl = document.getElementById('chartTotalProjects');
+            if(chartTotalEl) chartTotalEl.innerText = total;
+        }
+
+        // ==========================================
+        // MODULE: RISK ENGINE
+        // ==========================================
+        
+        function calculateRiskScore(d) {
+            const durationDays = Math.max(1, d.duration); // Already in days from input
+            const svIndex = (d.delay / durationDays) * 100;
+            const cvIndex = Math.max(0, d.budget - d.completion);
+            
+            let scheduleImpact = svIndex * 1.5;
+            let costImpact = cvIndex * 1.2;
+            let resourceImpact = d.resource === 'shortage' ? 25 : (d.resource === 'partial' ? 10 : 0);
+            let complexityImpact = d.complexity === 'high' ? 15 : (d.complexity === 'medium' ? 5 : 0);
+            
+            let advancedImpact = 0;
+            if (d.advancedEnabled) {
+                advancedImpact += (d.scopeChange * 2);
+                advancedImpact -= (d.teamExp * 1.5);
+                advancedImpact += (d.dependencyCount * 1.0);
+                advancedImpact += (d.defectRate * 0.5);
+                advancedImpact += (d.rework * 0.5);
+                if(d.stakeholder === 'volatile') advancedImpact += 15;
+                if(d.stakeholder === 'stable') advancedImpact -= 5;
+                advancedImpact = Math.max(-15, Math.min(30, advancedImpact));
+            }
+
+            let completionBuffer = 0;
+            if (d.completion > 90) completionBuffer = -20;
+            else if (d.completion < 10) completionBuffer = 5;
+
+            let rawScore = scheduleImpact + costImpact + resourceImpact + complexityImpact + advancedImpact + completionBuffer;
+
+            const probability = Math.round(Math.max(RISK_THRESHOLDS.MIN, Math.min(RISK_THRESHOLDS.MAX, rawScore)));
+            
+            let level = "Low";
+            if(probability > RISK_THRESHOLDS.HIGH) level = "High";
+            else if(probability > RISK_THRESHOLDS.LOW) level = "Medium";
+
+            const totalImpactVectors = Math.max(1, Math.abs(scheduleImpact) + Math.abs(costImpact) + Math.abs(resourceImpact) + Math.abs(complexityImpact) + Math.abs(advancedImpact));
+            
+            return {
+                probability,
+                level,
+                breakdown: {
+                    schedule: Math.round((Math.abs(scheduleImpact) / totalImpactVectors) * 100),
+                    cost: Math.round((Math.abs(costImpact) / totalImpactVectors) * 100),
+                    resource: Math.round((Math.abs(resourceImpact) / totalImpactVectors) * 100),
+                    complexity: Math.round((Math.abs(complexityImpact) / totalImpactVectors) * 100),
+                    advanced: Math.round((Math.abs(advancedImpact) / totalImpactVectors) * 100)
+                },
+                derived: { svIndex, cvIndex }
+            };
+        }
+
+        document.getElementById('riskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader w-4 h-4 border-white border-t-transparent mr-2"></div> Calculating...';
+            document.getElementById('formOverlay').classList.remove('hidden');
+
+            setTimeout(() => {
+                const isAdvanced = document.getElementById('advancedToggle').checked;
+                
+                const pData = {
+                    name: sanitizeInput(document.getElementById('pName').value),
+                    type: document.getElementById('pType').value,
+                    duration: parseFloat(document.getElementById('pDuration').value) || 365,
+                    completion: parseFloat(document.getElementById('pCompletion').value) || 0,
+                    delay: parseFloat(document.getElementById('pDelay').value) || 0,
+                    budget: parseFloat(document.getElementById('pBudgetUsed').value) || 0,
+                    resource: document.getElementById('pResource').value,
+                    complexity: document.getElementById('pDependency').value,
+                    advancedEnabled: isAdvanced,
+                    scopeChange: isAdvanced ? parseFloat(document.getElementById('pScopeChange').value) || 0 : 0,
+                    teamExp: isAdvanced ? parseFloat(document.getElementById('pTeamExp').value) || 0 : 0,
+                    dependencyCount: isAdvanced ? parseFloat(document.getElementById('pDependencies').value) || 0 : 0,
+                    defectRate: isAdvanced ? parseFloat(document.getElementById('pDefectRate').value) || 0 : 0,
+                    rework: isAdvanced ? parseFloat(document.getElementById('pRework').value) || 0 : 0,
+                    stakeholder: isAdvanced ? document.getElementById('pStakeholder').value : 'stable'
+                };
+
+                const result = calculateRiskScore(pData);
+
+                const badge = document.getElementById('riskBadge');
+                const probText = document.getElementById('riskProb');
+                const bar = document.getElementById('riskMeterBar');
+                
+                badge.innerText = result.level.toUpperCase();
+                badge.className = `px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+                    result.level === 'High' ? "bg-red-500/10 border-red-500 text-red-400" : (result.level === 'Medium' ? "bg-amber-500/10 border-amber-500 text-amber-400" : "bg-emerald-500/10 border-emerald-500 text-emerald-400")
+                }`;
+                probText.innerText = result.probability + "%";
+                probText.className = `text-4xl font-bold tracking-tight ${result.level === 'High' ? "text-red-400" : (result.level === 'Medium' ? "text-amber-400" : "text-emerald-400")}`;
+                
+                bar.className = `h-1.5 rounded-full transition-all duration-1000 ${
+                    result.level === 'High' ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" : (result.level === 'Medium' ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]" : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]")
+                }`;
+                bar.style.width = result.probability + "%";
+
+                const b = result.breakdown;
+                document.getElementById('impactScheduleVal').innerText = b.schedule + "%";
+                document.getElementById('impactScheduleBar').style.width = b.schedule + "%";
+                
+                document.getElementById('impactCostVal').innerText = b.cost + "%";
+                document.getElementById('impactCostBar').style.width = b.cost + "%";
+                
+                document.getElementById('impactResVal').innerText = b.resource + "%";
+                document.getElementById('impactResBar').style.width = b.resource + "%";
+                
+                document.getElementById('impactCompVal').innerText = b.complexity + "%";
+                document.getElementById('impactCompBar').style.width = b.complexity + "%";
+                
+                if (isAdvanced) {
+                    document.getElementById('impactAdvVal').innerText = b.advanced + "%";
+                    document.getElementById('impactAdvBar').style.width = b.advanced + "%";
+                }
+
+                const mList = document.getElementById('mitigationList');
+                mList.innerHTML = '';
+                if (pData.resource === 'shortage') mList.innerHTML += `<li><i class="fa-solid fa-user-plus text-red-400 mr-2"></i>Resource constraint is critical. Augment team capacity.</li>`;
+                if (result.derived.cvIndex > 20) mList.innerHTML += `<li><i class="fa-solid fa-money-bill-wave text-amber-400 mr-2"></i>Budget burn exceeds baseline. Execute cost audit.</li>`;
+                if (result.derived.svIndex > 10) mList.innerHTML += `<li><i class="fa-solid fa-clock text-red-400 mr-2"></i>Schedule slip detected. Re-evaluate critical path logic.</li>`;
+                if (isAdvanced && pData.scopeChange > 2) mList.innerHTML += `<li><i class="fa-solid fa-code-branch text-indigo-400 mr-2"></i>High scope churn. Implement strict change control board.</li>`;
+                if (result.level === 'Low') mList.innerHTML += `<li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Metrics within tolerance. Maintain operational baseline.</li>`;
+                if (mList.innerHTML === '') mList.innerHTML = `<li><i class="fa-solid fa-magnifying-glass text-blue-400 mr-2"></i>Review downstream architectural dependencies.</li>`;
+
+                document.getElementById('resultPlaceholder').classList.add('hidden');
+                document.getElementById('resultCard').classList.remove('hidden');
+
+                projects.unshift({
+                    id: Date.now(),
+                    name: pData.name,
+                    type: pData.type,
+                    method: "Manual",
+                    progress: pData.completion,
+                    status: result.level,
+                    probability: result.probability,
+                    date: new Date().toISOString().split('T')[0]
+                });
+                saveData();
+
+                btn.disabled = false;
+                btn.innerHTML = '<span>Calculate Risk Score</span> <i class="fa-solid fa-arrow-right"></i>';
+                document.getElementById('formOverlay').classList.add('hidden');
+            }, 800);
+        });
+
+        function resetForm() {
+            document.getElementById('riskForm').reset();
+            document.getElementById('completionVal').innerText = "0%";
+            document.getElementById('budgetVal').innerText = "0%";
+            document.getElementById('pCompletionSlider').value = 0;
+            document.getElementById('pBudgetSlider').value = 0;
+            
+            document.getElementById('resultCard').classList.add('hidden');
+            document.getElementById('resultPlaceholder').classList.remove('hidden');
+        }
+
+        // --- URL Analysis (Real GitHub API Data Extraction) ---
+        
+        function logToConsole(msg) {
+            const consoleOut = document.getElementById('consoleOutput');
+            if(consoleOut) {
+                const log = document.createElement('div');
+                log.className = "log-entry text-emerald-400 font-mono text-xs";
+                log.innerText = `> ${msg}`;
+                consoleOut.appendChild(log);
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
+        }
+
+        // HELPER: Normalize linearly between [min, max] to [0, 1]
+        const normalizeLinear = (value, min, max) => {
+            if (value <= min) return 0;
+            if (value >= max) return 1;
+            return (value - min) / (max - min);
+        };
+
+        // HELPER: Inverse normalization (higher value = lower risk output)
+        const normalizeInverse = (value, min, max) => {
+            return 1 - normalizeLinear(value, min, max);
+        };
+
+        async function analyzeRepo(url, projectType) {
+            const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/i);
+            if (!match) {
+                throw new Error("Invalid URL. Must be github.com/owner/repo");
+            }
+            
+            const owner = match[1];
+            let repo = match[2].replace(/\.git$/, ''); 
+
+            const cacheKey = `gh_cache_${owner}_${repo}`;
+            const cached = localStorage.getItem(cacheKey);
+            let aggregatedData;
+
+            if (cached && (Date.now() - JSON.parse(cached).timestamp < 3600000)) {
+                logToConsole("Using cached metadata to avoid limits...");
+                aggregatedData = JSON.parse(cached).data;
+                await new Promise(r => setTimeout(r, 400)); 
+            } else {
+                const headers = { "Accept": "application/vnd.github.v3+json" };
+                
+                logToConsole(`Resolving repository: ${owner}/${repo}`);
+                const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+                if (!repoRes.ok) throw new Error("Repository not found or rate limit reached.");
+                const repoData = await repoRes.json();
+
+                logToConsole("Fetching live metrics (stars, forks, issues)...");
+                const contRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=100`, { headers });
+                const contributors = contRes.ok ? await contRes.json() : [];
+
+                logToConsole("Analyzing recent code updates...");
+                const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=30`, { headers });
+                const commits = commitRes.ok ? await commitRes.json() : [];
+
+                aggregatedData = { 
+                    repo: repoData, 
+                    contributors: contributors, // Passing full array for deeper feature analysis
+                    commits: commits            // Passing full array for date-based velocity
+                };
+                
+                localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: aggregatedData }));
+            }
+
+            logToConsole("Generating health score...");
+            await new Promise(r => setTimeout(r, 600)); 
+
+            return calculateRealRisk(aggregatedData, projectType, url);
+        }
+
+        // AI-Driven Weighted Mathematical Risk Engine
+        function calculateRealRisk(ghData, projectType, url) {
+            const { repo, contributors, commits } = ghData;
+            const now = new Date();
+            const pushedDate = new Date(repo.pushed_at);
+            const createdDate = new Date(repo.created_at);
+
+            // 1. Feature Engineering
+            const daysSinceLastCommit = Math.max(0, Math.floor((now - pushedDate) / (1000 * 60 * 60 * 24)));
+            const repoAgeMonths = Math.max(1, (now - createdDate) / (1000 * 60 * 60 * 24 * 30.44));
+            
+            // Advanced Commit Analysis: Calculate true Commits Per Week from recent payload
+            let commitsPerWeek = 0;
+            if (Array.isArray(commits) && commits.length > 0) {
+                const oldestCommitDate = new Date(commits[commits.length - 1].commit.author.date);
+                const newestCommitDate = new Date(commits[0].commit.author.date);
+                const timespanWeeks = Math.max(1, (newestCommitDate - oldestCommitDate) / (1000 * 60 * 60 * 24 * 7));
+                commitsPerWeek = commits.length / timespanWeeks;
+            } else if (typeof commits === 'number') {
+                // Fallback if cached data has just the length
+                const timespanWeeks = Math.max(1, daysSinceLastCommit / 7);
+                commitsPerWeek = commits / timespanWeeks;
+            }
+
+            const issueDensity = repo.open_issues_count / repoAgeMonths;
+            const popularityScore = Math.log10((repo.stargazers_count || 0) + (repo.forks_count || 0) + 1);
+            const contributorCount = Array.isArray(contributors) ? contributors.length : (contributors || 1);
+
+            // 2. Normalization [0, 1]
+            // High recency risk if > 60 days since last commit
+            const recencyScore = normalizeLinear(daysSinceLastCommit, 0, 60);
+            
+            // High activity risk if < 5 commits per week
+            const activityScore = normalizeInverse(commitsPerWeek, 0, 5);
+            
+            // High issue risk if > 15 issues per month
+            const issueScore = normalizeLinear(issueDensity, 0, 15);
+            
+            // High contributor risk if < 5 active contributors (bus factor)
+            const contributorScore = normalizeInverse(contributorCount, 1, 5);
+            
+            // High popularity reduces risk (log scale maxing around 10k stars = log(10k)=4)
+            const popularityRiskScore = normalizeInverse(popularityScore, 0, 4);
+
+            // 3. Weighted Risk Model
+            // Domain-specific weights mimicking a tuned random forest linear approximation
+            const WEIGHTS = {
+                recency: 0.30,
+                activity: 0.25,
+                issues: 0.20,
+                contributors: 0.15,
+                popularity: 0.10
+            };
+
+            const baseRisk = 
+                (WEIGHTS.recency * recencyScore) +
+                (WEIGHTS.activity * activityScore) +
+                (WEIGHTS.issues * issueScore) +
+                (WEIGHTS.contributors * contributorScore) +
+                (WEIGHTS.popularity * popularityRiskScore);
+
+            // Convert to percentage and clamp
+            let probability = Math.round(baseRisk * 100);
+
+            // Apply domain-specific advanced constraints
+            let advancedRisk = 0;
+            if (projectType === "Research") advancedRisk = 8; // High variance in research
+            if (projectType === "Construction") advancedRisk = 5; 
+
+            probability = Math.max(RISK_THRESHOLDS.MIN, Math.min(RISK_THRESHOLDS.MAX, probability + advancedRisk));
+
+            // Define Risk Levels
+            let level = "Low";
+            if (probability > RISK_THRESHOLDS.HIGH) level = "High";
+            else if (probability > RISK_THRESHOLDS.LOW) level = "Medium";
+
+            // 4. Explainability (Feature Impact Vectors)
+            const mitigations = [];
+            
+            if (recencyScore > 0.5) mitigations.push(`Risk (+${Math.round(WEIGHTS.recency * recencyScore * 100)}%): Codebase is stale. Last update ${daysSinceLastCommit} days ago.`);
+            else mitigations.push(`Positive (-${Math.round(WEIGHTS.recency * (1-recencyScore) * 100)}%): Frequent and recent codebase updates.`);
+
+            if (activityScore > 0.5) mitigations.push(`Risk (+${Math.round(WEIGHTS.activity * activityScore * 100)}%): Low commit velocity (${commitsPerWeek.toFixed(1)} commits/week).`);
+            else mitigations.push(`Positive (-${Math.round(WEIGHTS.activity * (1-activityScore) * 100)}%): High active development velocity.`);
+
+            if (issueScore > 0.5) mitigations.push(`Risk (+${Math.round(WEIGHTS.issues * issueScore * 100)}%): High issue density (${issueDensity.toFixed(1)} issues/month).`);
+            else if (issueDensity < 2) mitigations.push(`Positive (-${Math.round(WEIGHTS.issues * (1-issueScore) * 100)}%): Well-managed issue backlog.`);
+
+            if (contributorScore > 0.5) mitigations.push(`Risk (+${Math.round(WEIGHTS.contributors * contributorScore * 100)}%): Low contributor count (${contributorCount}). High bus factor.`);
+            
+            if (popularityRiskScore < 0.5) mitigations.push(`Positive (-${Math.round(WEIGHTS.popularity * (1-popularityRiskScore) * 100)}%): High community trust and validation.`);
+
+            if (advancedRisk > 0) mitigations.push(`Risk (+${advancedRisk}%): Inherently complex domain (${projectType}).`);
+
+            // Compute Breakdown for UI charts
+            const totalImpact = (WEIGHTS.recency * recencyScore) + (WEIGHTS.activity * activityScore) + (WEIGHTS.issues * issueScore) + (WEIGHTS.contributors * contributorScore) + (WEIGHTS.popularity * popularityRiskScore) + (advancedRisk/100) || 0.01;
+
+            const breakdown = {
+                schedule: Math.round(((WEIGHTS.recency * recencyScore + WEIGHTS.activity * activityScore) / totalImpact) * 100),
+                cost: Math.round(((WEIGHTS.issues * issueScore) / totalImpact) * 100),
+                resource: Math.round(((WEIGHTS.contributors * contributorScore) / totalImpact) * 100),
+                complexity: Math.round(((WEIGHTS.popularity * popularityRiskScore) / totalImpact) * 100),
+                advanced: Math.round(((advancedRisk/100) / totalImpact) * 100)
+            };
+
+            return {
+                probability,
+                level,
+                breakdown,
+                metrics: {
+                    doc: `${repo.stargazers_count} Stars / ${repo.forks_count} Forks`,
+                    update: `${daysSinceLastCommit} days ago`,
+                    maturity: `${repoAgeMonths.toFixed(1)} Months Old`,
+                    complex: `${contributorCount} People`
+                },
+                mitigations,
+                name: repo.name || "Analyzed Project"
+            };
+        }
+
+        document.getElementById('urlForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const urlInput = document.getElementById('urlInput');
+            if (!urlInput.value || !urlInput.checkValidity()) {
+                alert("Please enter a valid URL.");
+                return;
+            }
+            const url = sanitizeInput(urlInput.value.trim());
+            const type = document.getElementById('urlProjectType').value;
+            const btn = document.getElementById('urlSubmitBtn');
+            const consoleOut = document.getElementById('consoleOutput');
+            const resultCard = document.getElementById('urlResultCard');
+
+            resultCard.classList.add('hidden');
+            consoleOut.innerHTML = '';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Scanning...';
+
+            logToConsole("Starting link scan...");
+
+            try {
+                const result = await analyzeRepo(url, type);
+                
+                logToConsole("Scan complete.");
+
+                document.getElementById('urlProb').innerText = result.probability + "%";
+                
+                const badge = document.getElementById('urlRiskBadge');
+                badge.className = `inline-block px-4 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider mb-4 ${
+                    result.level === "High" ? "bg-red-500/10 border-red-500 text-red-400" : (result.level === "Medium" ? "bg-amber-500/10 border-amber-500 text-amber-400" : "bg-emerald-500/10 border-emerald-500 text-emerald-400")
+                }`;
+                
+                const probText = document.getElementById('urlProb');
+                probText.className = `text-6xl font-black tracking-tight ${
+                    result.level === "High" ? "text-red-400" : (result.level === "Medium" ? "text-amber-400" : "text-emerald-400")
+                }`;
+
+                badge.innerText = result.level.toUpperCase();
+                
+                document.getElementById('metricDoc').innerText = result.metrics.doc;
+                document.getElementById('metricUpdate').innerText = result.metrics.update;
+                document.getElementById('metricMaturity').innerText = result.metrics.maturity;
+                document.getElementById('metricComplex').innerText = result.metrics.complex;
+
+                // Sync Breakdown Bars
+                const b = result.breakdown;
+                document.getElementById('impactScheduleVal').innerText = b.schedule + "%";
+                document.getElementById('impactScheduleBar').style.width = b.schedule + "%";
+                
+                document.getElementById('impactCostVal').innerText = b.cost + "%";
+                document.getElementById('impactCostBar').style.width = b.cost + "%";
+                
+                document.getElementById('impactResVal').innerText = b.resource + "%";
+                document.getElementById('impactResBar').style.width = b.resource + "%";
+                
+                document.getElementById('impactCompVal').innerText = b.complexity + "%";
+                document.getElementById('impactCompBar').style.width = b.complexity + "%";
+
+                const advContainer = document.getElementById('advancedImpactContainer');
+                if (advContainer) {
+                    if (b.advanced > 0) {
+                        advContainer.classList.remove('hidden');
+                        document.getElementById('impactAdvVal').innerText = b.advanced + "%";
+                        document.getElementById('impactAdvBar').style.width = b.advanced + "%";
+                    } else {
+                        advContainer.classList.add('hidden');
+                    }
+                }
+
+                const list = document.getElementById('urlMitigations');
+                list.innerHTML = "";
+                result.mitigations.forEach(m => {
+                    list.innerHTML += `<li class="flex items-start gap-2"><i class="fa-solid fa-check-circle text-blue-500 mt-0.5"></i> <span>${m}</span></li>`;
+                });
+
+                document.getElementById('urlResultCard').classList.remove('hidden');
+
+                const newProject = {
+                    id: Date.now(),
+                    name: result.name,
+                    type: type,
+                    method: "Scan Link (AI)",
+                    progress: result.level === "High" ? 25 : (result.level === "Low" ? 90 : 50), 
+                    status: result.level,
+                    probability: result.probability,
+                    date: new Date().toISOString().split('T')[0]
+                };
+                projects.unshift(newProject);
+                saveData();
+
+            } catch (error) {
+                logToConsole(`ERROR: ${error.message}`);
+                logToConsole("Scan stopped.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-bolt text-yellow-400"></i> Scan Project Link';
+            }
+        });
+
+        // ==========================================
+        // MODULE: ANALYTICS
+        // ==========================================
+        let distChartInstance = null;
+        let trendChartInstance = null;
+        let impactChartInstance = null;
+
+        function renderCharts() {
+            const high = projects.filter(p => p.status === 'High').length;
+            const med = projects.filter(p => p.status === 'Medium').length;
+            const low = projects.filter(p => p.status === 'Low').length;
+            const total = projects.length;
+
+            const chartTotalEl = document.getElementById('chartTotalProjects');
+            if(chartTotalEl) chartTotalEl.innerText = total;
+
+            // Handle empty state gracefully
+            if (total === 0) {
+                document.getElementById('aiRiskSummaryList').innerHTML = '<li><i class="fa-solid fa-circle-info text-slate-400 mr-2"></i> Add some projects to see your AI risk summary.</li>';
+                document.getElementById('doughnutInsight').innerText = "No data to display.";
+                document.getElementById('trendInsight').innerText = "No data to display.";
+                if(distChartInstance) distChartInstance.destroy();
+                if(trendChartInstance) trendChartInstance.destroy();
+                if(impactChartInstance) impactChartInstance.destroy(); // clean up if exists
+                return;
+            }
+
+            // Calculations for Insights
+            const recentProbs = projects.slice(0, 6).map(p => p.probability).reverse();
+            while (recentProbs.length < 6) { recentProbs.unshift(recentProbs.length > 0 ? recentProbs[0] : 50); }
+            
+            const forecastData = [...recentProbs];
+            const p1 = forecastData[3], p2 = forecastData[4], p3 = forecastData[5];
+            const wmaNext = Math.round((1*p1 + 2*p2 + 3*p3) / 6);
+            const momentum = wmaNext - p3;
+            forecastData.push(wmaNext); 
+            forecastData.push(Math.max(5, Math.min(95, wmaNext + momentum)));
+
+            // Factor Analysis for AI Insights (Still calculating to get the insight, but not graphing it)
+            const scopeCount = projects.filter(p => p.name.length > 20 || p.type === 'Research').length; 
+            const budgetCount = projects.filter(p => p.method === 'Manual' && (p.budgetUsed || 0) > (p.progress || 0)).length;
+            const timeCount = projects.filter(p => p.method === 'Manual' && (p.delay || 0) > 10).length;
+            const resCount = projects.filter(p => p.method === 'Manual' && p.resource === 'shortage').length;
+
+            const factorData = [scopeCount, budgetCount, timeCount, resCount];
+            const totalFactors = Math.max(1, factorData.reduce((a, b) => a + b, 0));
+            const factorPcts = factorData.map(val => Math.round((val / totalFactors) * 100));
+            const problemLabels = ['Scope Creep', 'Budget Overruns', 'Schedule Delays', 'Resource Shortages'];
+            const highestFactorIdx = factorPcts.indexOf(Math.max(...factorPcts));
+            const mainProblem = problemLabels[highestFactorIdx] || "Unknown";
+
+            // --- Generate AI Risk Summary ---
+            const summaryList = document.getElementById('aiRiskSummaryList');
+            let summaryHTML = "";
+            
+            // 1. Overall Trend
+            if (momentum > 5) {
+                summaryHTML += `<li><i class="fa-solid fa-arrow-trend-up text-red-500 mr-2"></i> <strong>Trend:</strong> Overall portfolio risk is <strong>increasing</strong>. Action is needed to stabilize recent projects.</li>`;
+            } else if (momentum < -5) {
+                summaryHTML += `<li><i class="fa-solid fa-arrow-trend-down text-emerald-500 mr-2"></i> <strong>Trend:</strong> Overall portfolio risk is <strong>decreasing</strong>. Recent mitigation efforts are working.</li>`;
+            } else {
+                summaryHTML += `<li><i class="fa-solid fa-minus text-amber-500 mr-2"></i> <strong>Trend:</strong> Overall portfolio risk is <strong>stable</strong>. Keep monitoring closely.</li>`;
+            }
+
+            // 2. Most Common Risk Level
+            let commonRisk = "Low (Safe)";
+            if (med >= low && med >= high) commonRisk = "Medium (Needs Attention)";
+            if (high >= low && high >= med) commonRisk = "High (Urgent)";
+            summaryHTML += `<li><i class="fa-solid fa-chart-pie text-blue-500 mr-2"></i> <strong>Distribution:</strong> Most of your projects are currently classified as <strong>${commonRisk}</strong>.</li>`;
+
+            // 3. Main Problem Factor
+            if (factorData[highestFactorIdx] > 0) {
+                 summaryHTML += `<li><i class="fa-solid fa-triangle-exclamation text-amber-500 mr-2"></i> <strong>Top Issue:</strong> The biggest driver of risk across your portfolio right now is <strong>${mainProblem}</strong>.</li>`;
+            } else {
+                 summaryHTML += `<li><i class="fa-solid fa-check-circle text-emerald-500 mr-2"></i> <strong>Top Issue:</strong> No severe systemic issues detected across the portfolio right now.</li>`;
+            }
+
+            // 4. Recommendation based on problem
+            let recommendation = "Continue tracking progress and update project data regularly.";
+            if (mainProblem === 'Scope Creep') recommendation = "Implement stricter change control processes to lock in project scope.";
+            if (mainProblem === 'Budget Overruns') recommendation = "Audit current project spending and freeze non-essential expenses.";
+            if (mainProblem === 'Schedule Delays') recommendation = "Review critical path timelines and remove blockers for delayed tasks.";
+            if (mainProblem === 'Resource Shortages') recommendation = "Reallocate staff from low-priority tasks to help struggling teams.";
+            
+            summaryHTML += `<li><i class="fa-solid fa-lightbulb text-indigo-500 mr-2"></i> <strong>Recommendation:</strong> ${recommendation}</li>`;
+
+            if(summaryList) summaryList.innerHTML = summaryHTML;
+
+            // --- Update Chart Insights Text ---
+            const medHighPct = Math.round(((med + high) / total) * 100) || 0;
+            const doughnutInsightEl = document.getElementById('doughnutInsight');
+            if (doughnutInsightEl) {
+                if (medHighPct > 50) {
+                    doughnutInsightEl.innerHTML = `<span class="text-red-500 font-bold">${medHighPct}%</span> of your projects are at risk (Medium/High).`;
+                } else {
+                    doughnutInsightEl.innerHTML = `<span class="text-emerald-600 font-bold">${100 - medHighPct}%</span> of your projects are currently safe (Low Risk).`;
+                }
+            }
+
+            const trendInsightEl = document.getElementById('trendInsight');
+            if (trendInsightEl) {
+                const diff = recentProbs[5] - recentProbs[4];
+                if (diff > 0) {
+                    trendInsightEl.innerHTML = `Risk <span class="text-red-500 font-bold">increased by ${diff}%</span> in the latest entry.`;
+                } else if (diff < 0) {
+                    trendInsightEl.innerHTML = `Risk <span class="text-emerald-600 font-bold">decreased by ${Math.abs(diff)}%</span> in the latest entry.`;
+                } else {
+                    trendInsightEl.innerHTML = `Risk remained unchanged in the latest entry.`;
+                }
+            }
+
+            // --- Render Doughnut Chart ---
+            const ctx1 = document.getElementById('riskDistChart').getContext('2d');
+            if(distChartInstance) distChartInstance.destroy();
+            distChartInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Safe (Low)', 'Needs Attention (Medium)', 'Urgent (High)'],
+                    datasets: [{ 
+                        data: [low, med, high], 
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], 
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'Inter', size: 12 }, padding: 20 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) label += ': ';
+                                    let val = context.parsed;
+                                    let pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                                    return `${label}${val} project(s) (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- Render Line Chart ---
+            const ctx2 = document.getElementById('riskTrendChart').getContext('2d');
+            if(trendChartInstance) trendChartInstance.destroy();
+            
+            const gradient = ctx2.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)'); // Indigo
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            // Clean up labels
+            const labels = ['Past', 'Past', 'Past', 'Past', 'Previous', 'Current', 'Forecast', 'Forecast'];
+
+            trendChartInstance = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            label: 'Actual Risk', 
+                            data: [...recentProbs, null, null], 
+                            borderColor: '#6366f1', // Indigo
+                            borderWidth: 3,
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: ['#fff', '#fff', '#fff', '#fff', '#fff', '#ef4444', '#fff', '#fff'], // Highlight current
+                            pointBorderColor: ['#6366f1', '#6366f1', '#6366f1', '#6366f1', '#6366f1', '#ef4444', '#6366f1', '#6366f1'],
+                            pointRadius: [4, 4, 4, 4, 4, 6, 0, 0], // Make current point larger
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Predicted Risk',
+                            data: [null, null, null, null, null, recentProbs[5], forecastData[6], forecastData[7]],
+                            borderColor: '#94a3b8', // Slate
+                            borderWidth: 3,
+                            borderDash: [6, 6], 
+                            fill: false,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#94a3b8'
+                        }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#1e293b',
+                            bodyColor: '#475569',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            grid: { display: true, borderDash: [5, 5], color: '#f1f5f9' }, 
+                            beginAtZero: true, 
+                            max: 100,
+                            ticks: { font: { size: 11, family: 'Inter' }, color: '#64748b' },
+                            title: { display: true, text: 'Risk Score (%)', color: '#94a3b8', font: { size: 10 } }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { font: { size: 11, family: 'Inter' }, color: '#64748b' }
+                        }
+                    }
+                }
+            });
+            
+            // Removing the old impact chart
+            const impactCanvas = document.getElementById('impactChart');
+            if(impactCanvas && impactChartInstance) {
+                 impactChartInstance.destroy();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>

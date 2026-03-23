@@ -1,0 +1,22 @@
+{
+  "buildCommand": "npm install",
+  "startCommand": "npm start",
+  "env": {
+    "MONGODB_URI": {
+      "description": "MongoDB connection string",
+      "required": true
+    },
+    "JWT_SECRET": {
+      "description": "JWT secret key",
+      "required": true
+    },
+    "JWT_EXPIRE": {
+      "default": "7d",
+      "description": "JWT token expiration"
+    },
+    "PORT": {
+      "default": "5000",
+      "description": "Server port"
+    }
+  }
+}
