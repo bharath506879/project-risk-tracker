@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +10,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from frontend directory
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Check if using demo mode (MongoDB URI contains REPLACE_WITH_PASSWORD)
 const isDemoMode = process.env.MONGODB_URI.includes('REPLACE_WITH_PASSWORD');
@@ -37,9 +41,18 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'Server is running' });
 });
 
-// 404 Handler
+// Serve frontend HTML for root and non-API routes
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/riskguard.html'));
+});
+
+// 404 Handler - Serve frontend for non-API routes
 app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
+    if (req.path.startsWith('/api/')) {
+        res.status(404).json({ error: 'Route not found' });
+    } else {
+        res.sendFile(path.join(__dirname, '../frontend/riskguard.html'));
+    }
 });
 
 // Error Handler
